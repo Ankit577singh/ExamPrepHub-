@@ -10,11 +10,10 @@ const Port = process.env.PORT || 4040;
 
 const app = express();
 
-const allowOrigin = [process.env.FRONTEND_URL];
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({origin: allowOrigin,credentials:true}))
+app.use(cors({origin: process.env.FRONTEND_URL,credentials:true}))
 
 app.get('/',(req,res)=>{
     res.send("api is workng");
