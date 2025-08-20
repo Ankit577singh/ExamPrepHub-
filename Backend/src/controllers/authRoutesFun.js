@@ -81,7 +81,7 @@ async function login(req,res){
         });
 
         // res.status(200).send("Login Succesfull");
-        res.json({success : true , message : "Login successfully"});
+        res.json({success : true , message : "Login successfully",token});
         
 
     }
