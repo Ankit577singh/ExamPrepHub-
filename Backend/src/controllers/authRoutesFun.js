@@ -27,7 +27,6 @@ async function register(req, res) {
           secure: process.env.NODE_ENV === 'production',
           sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
           maxAge:  60 * 60 * 1000, 
-            domain: process.env.NODE_ENV === 'production'?process.env.COOKIE_DOMAIN:'undefined'
     } );
 
     // safe mail send
@@ -78,7 +77,6 @@ async function login(req, res)  {
           secure: process.env.NODE_ENV === 'production',
           sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
           maxAge:  60 * 60 * 1000, 
-          domain: process.env.NODE_ENV === 'production'?process.env.COOKIE_DOMAIN:'undefined'
     });
 
     res.status(200).json({ success: true, message: 'Login successful' });
