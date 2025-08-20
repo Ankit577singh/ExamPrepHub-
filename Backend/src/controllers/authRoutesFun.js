@@ -5,6 +5,23 @@ const validation = require('../util/validation');
 const transporter = require('../config/nodemailer');
 const { EMAIL_VERIFY_TEMPLATE, PASSWORD_RESET_TEMPLATE, RAGISTER_EMAIL, VERIFIED_ACCOUNT } = require('../config/email.template');
 
+// Helper function to get cookie options
+const getCookieOptions = () => {
+  const options = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 60 * 60 * 1000, // 1 hour
+  };
+
+  // Only add domain in production if specified
+  if (process.env.NODE_ENV === 'production' && process.env.COOKIE_DOMAIN) {
+    options.domain = process.env.COOKIE_DOMAIN;
+  }
+
+  return options;
+};
+
 async function register(req, res) {
   try {
     console.log("📩 [Register] API called with data:", req.body);
@@ -27,14 +44,8 @@ async function register(req, res) {
     );
     console.log("🎫 [Register] JWT generated:", token);
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 60 * 60 * 1000,
-      domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : 'undefined'
-    });
-
+    // Use consistent cookie options
+    res.cookie("token", token, getCookieOptions());
     console.log("🍪 [Register] Cookie set successfully");
 
     try {
@@ -56,7 +67,6 @@ async function register(req, res) {
     return res.status(500).json({ success: false, message: err.message || "Server error" });
   }
 }
-
 
 async function login(req, res) {
   try {
@@ -82,14 +92,8 @@ async function login(req, res) {
     );
     console.log("🎫 [Login] JWT generated:", token);
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 60 * 60 * 1000,
-      domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : 'undefined'
-    });
-
+    // Use consistent cookie options
+    res.cookie('token', token, getCookieOptions());
     console.log("🍪 [Login] Cookie set successfully");
 
     res.status(200).json({ success: true, message: 'Login successful' });
@@ -97,7 +101,7 @@ async function login(req, res) {
     console.error("❌ [Login] Error:", err.message);
     res.status(401).json({ success: false, message: err.message });
   }
-};
+}
 
 async function logout(req, res) {
   try {
@@ -109,20 +113,19 @@ async function logout(req, res) {
       return res.status(400).json({ success: false, message: "Token not present" });
     }
 
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-    });
-
+    // Use consistent cookie options for clearing (without maxAge)
+    const clearOptions = getCookieOptions();
+    delete clearOptions.maxAge; // Remove maxAge for clearing
+    
+    res.clearCookie("token", clearOptions);
     console.log("✅ [Logout] Cookie cleared successfully");
+    
     return res.json({ success: true, message: "Logout successfully" });
   } catch (err) {
     console.error("❌ [Logout] Error:", err.message);
     return res.status(500).json({ success: false, message: "Error: " + err.message });
   }
 }
-
 
 async function verifyOtpSend(req,res){
     try{
