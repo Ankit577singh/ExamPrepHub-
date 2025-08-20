@@ -54,7 +54,7 @@ async function register(req, res) {
 }
 
 
-app.post('/login', async (req, res) => {
+async function login(req, res)  {
   try {
     const { email, password } = req.body;
 
@@ -85,7 +85,7 @@ app.post('/login', async (req, res) => {
   } catch (err) {
     res.status(401).json({ success: false, message: err.message });
   }
-});
+};
 
 async function logout(req, res) {
   try {
