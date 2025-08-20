@@ -72,7 +72,13 @@ async function login(req,res){
              throw new Error("Invalid Password ");
 
         const token = jwt.sign({_id:user._id , email:email},process.env.JWT_SECRET_KEY,{expiresIn:60*60});
-        res.cookie('token',token,{maxAge:60*60*1000});
+        // res.cookie('token',token,{maxAge:60*60*1000});
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production", // HTTPS only
+          sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax", // cross-domain
+          maxAge: 60*60*1000
+        });
 
         // res.status(200).send("Login Succesfull");
         res.json({success : true , message : "Login successfully"});
