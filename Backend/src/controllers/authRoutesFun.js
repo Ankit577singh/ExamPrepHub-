@@ -123,4 +123,206 @@ async function logout(req, res) {
   }
 }
 
-module.exports = { register, login, logout };
+
+async function verifyOtpSend(req,res){
+    try{
+        const user_id =  req.userId;
+        const user = await User.findById(user_id);
+
+         if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        if(user.isAccountVerified){
+            res.json({success : false , message : "account allready verified"});
+        }
+
+        const otp = String(Math.floor(100000+Math.random()*900000));
+        user.verifyOtp = otp;
+        user.verifyOtpExpired = Date.now() + 24*60*60*1000;
+        // console.log(user.email + " " + user._id);
+        
+
+        await user.save();
+
+         const mail = {
+            from : process.env.SENDER_EMAIL,
+            to : user.email,
+            subject : "varification otp",
+            // text : `hii ${user.name} welcome to ExamPreHub  , this is your verification otp : ${user.verifyOtp}`,
+            html : EMAIL_VERIFY_TEMPLATE.replace("{{otp}}",otp).replace("{{email}}",user.email)
+        }
+
+        transporter.sendMail(mail);
+        // res.send("verification otp send your email id ");
+        res.json({success : true , message : "verification otp send your email id"});
+
+
+    }
+    catch(err){
+        // res.send("Error : " + err);
+        res.json({success : false , message : "Error : " + err});
+    }
+}
+
+async function verifyEmail(req,res){
+    try{
+        const user_id =  req.userId;
+        const {otp} = req.body;
+        
+        const user = await User.findById(user_id);
+
+         if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        if(user.isAccountVerified){
+            return res.json({success : false , message : "account allready verified"});
+        }
+
+        if(user.verifyOtp === '' || user.verifyOtp!=otp){
+            return res.json({success : false , message : "Invalid otp"});
+        }
+
+        if(user.verifyOtpExpired < Date.now()){
+            return res.json({success : false , message : "otp expired"});
+        }
+
+        user.verifyOtpExpired = 0;
+        user.verifyOtp = "";
+        user.isAccountVerified = true;
+        await user.save();
+
+        const mail = {
+            from: process.env.SENDER_EMAIL,
+            to: user.email,
+            subject: "Account Verified ✔",
+            html: VERIFIED_ACCOUNT.replace("{{url}}",process.env.FRONTEND_URL+'/user/login') 
+        };
+
+
+        transporter.sendMail(mail);
+        // res.send("your account is verified");
+        res.json({success : true , message : "your account is verified"});
+
+
+    }
+    catch(err){
+        // res.send("Error : " + err);
+        res.json({success : false , message : "Error : " + err});
+    }
+}
+
+async function resetPasswordOtp(req,res) {
+    try{
+        const {email} = req.body;
+        if (!email) {
+            return res.json({ success: false, message: "Email is required" });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        const PassOtp = String(Math.floor(100000+Math.random()*900000));
+        user.resetOtp = PassOtp;
+        user.resetOtpExpired = Date.now() + 24*60*60*1000; 
+        await user.save();
+
+         const mail = {
+            from : process.env.SENDER_EMAIL,
+            to : user.email,
+            subject : "Reset Password",
+            // text : `hii ${user.name}  , your reset passwoed otp is ${user.resetOtp}`
+            html : PASSWORD_RESET_TEMPLATE.replace("{{otp}}",PassOtp).replace("{{email}}",user.email)
+        }
+
+        transporter.sendMail(mail);
+        // res.send("reset otp send your email id ");
+        res.json({success : true , message : "reset otp send your email id "});
+
+
+    }
+    catch(err){
+        // res.send("Error : " + err);
+        res.json({success : false , message : "Error : " + err});
+    }
+}
+
+async function checkOtp(req, res) {
+  try {
+    const { otp, email } = req.body;
+
+    if (!email || !otp) {
+      return res.json({ success: false, message: "Missing field" });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    if (user.resetOtp === "" || user.resetOtp != otp) {
+      return res.json({ success: false, message: "Invalid OTP" });
+    }
+
+    if (user.resetOtpExpired < Date.now()) {
+      return res.json({ success: false, message: "OTP expired" });
+    }
+
+    // ✅ Agar sab sahi hai
+    return res.json({ success: true, message: "Now change the Password" });
+
+  } catch (err) {
+    return res.json({ success: false, message: "Error: " + err.message });
+  }
+}
+
+async function resetPassword(req,res){
+    try{
+        const {email ,otp , newPassword} = req.body;
+        
+         if (!email || !otp || !newPassword) {
+            return res.json({ success: false, message: "missing field" });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        
+
+        if(user.resetOtp === '' || user.resetOtp!=otp){
+            return res.send("Invalid otp");
+        }
+
+        if(user.resetOtpExpired < Date.now()){
+            return res.send("otp expired ");
+        }
+
+        const newHashPass = await bcrypt.hash(newPassword,10);
+        user.password = newHashPass;
+
+        user.resetOtpExpiredExpired = 0;
+        user.resetOtp = "";
+        await user.save();
+
+        // res.send("your password has been changed ");
+        res.json({success : true , message : "your password has been changed"});
+
+
+    }
+    catch(err){
+        // res.send("Error : " + err);
+        res.json({success : false , message : "Error : " + err});
+    }
+}
+
+
+module.exports = {register,login,logout,verifyOtpSend,verifyEmail,resetPasswordOtp,resetPassword,checkOtp};
+
