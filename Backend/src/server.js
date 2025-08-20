@@ -20,6 +20,16 @@ app.get('/',(req,res)=>{
 })
 
 app.use('/user',authRouter);
+app.get('/debug-env', (req, res) => {
+  res.json({
+    NODE_ENV: process.env.NODE_ENV,
+    COOKIE_DOMAIN: process.env.COOKIE_DOMAIN,
+    FRONTEND_URL: process.env.FRONTEND_URL,
+    headers: req.headers,
+    host: req.headers.host,
+    origin: req.headers.origin
+  });
+});
 
 mongoDB().then(()=>{
     console.log("DB connected");

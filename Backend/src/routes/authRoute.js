@@ -18,6 +18,7 @@ authRouter.post('/reset-pass-otp' ,resetPasswordOtp);
 authRouter.post('/check-otp' ,checkOtp);
 authRouter.post('/reset-password',resetPassword);
 authRouter.get('/getProfile',idMiddleware,getProfile); 
+authRouter.get('/debug-cookies', debugCookies)
 
 
 module.exports = authRouter;

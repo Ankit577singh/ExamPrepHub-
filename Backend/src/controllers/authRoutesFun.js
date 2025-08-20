@@ -5,7 +5,7 @@ const validation = require('../util/validation');
 const transporter = require('../config/nodemailer');
 const { EMAIL_VERIFY_TEMPLATE, PASSWORD_RESET_TEMPLATE, RAGISTER_EMAIL, VERIFIED_ACCOUNT } = require('../config/email.template');
 
-// Helper function to get cookie options
+// Helper function to get cookie options with detailed logging
 const getCookieOptions = () => {
   const options = {
     httpOnly: true,
@@ -19,12 +19,20 @@ const getCookieOptions = () => {
     options.domain = process.env.COOKIE_DOMAIN;
   }
 
+  // Debug logging
+  console.log("🔍 [Cookie Options] Environment:", process.env.NODE_ENV);
+  console.log("🔍 [Cookie Options] Secure:", options.secure);
+  console.log("🔍 [Cookie Options] SameSite:", options.sameSite);
+  console.log("🔍 [Cookie Options] Domain:", options.domain || 'undefined');
+  console.log("🔍 [Cookie Options] Full Options:", JSON.stringify(options, null, 2));
+
   return options;
 };
 
 async function register(req, res) {
   try {
     console.log("📩 [Register] API called with data:", req.body);
+    console.log("🔍 [Register] Request Headers:", JSON.stringify(req.headers, null, 2));
 
     validation(req.body);
 
@@ -44,9 +52,9 @@ async function register(req, res) {
     );
     console.log("🎫 [Register] JWT generated:", token);
 
-    // Use consistent cookie options
-    res.cookie("token", token, getCookieOptions());
-    console.log("🍪 [Register] Cookie set successfully");
+    const cookieOptions = getCookieOptions();
+    res.cookie("token", token, cookieOptions);
+    console.log("🍪 [Register] Cookie set with options:", JSON.stringify(cookieOptions, null, 2));
 
     try {
       const mail = {
@@ -71,6 +79,10 @@ async function register(req, res) {
 async function login(req, res) {
   try {
     console.log("📩 [Login] API called with data:", req.body);
+    console.log("🔍 [Login] Request Headers:", JSON.stringify(req.headers, null, 2));
+    console.log("🔍 [Login] Request Origin:", req.headers.origin);
+    console.log("🔍 [Login] Request Host:", req.headers.host);
+    console.log("🔍 [Login] Request Referer:", req.headers.referer);
 
     const { email, password } = req.body;
     if (!email || !password) throw new Error('Invalid Credentials');
@@ -92,9 +104,12 @@ async function login(req, res) {
     );
     console.log("🎫 [Login] JWT generated:", token);
 
-    // Use consistent cookie options
-    res.cookie('token', token, getCookieOptions());
-    console.log("🍪 [Login] Cookie set successfully");
+    const cookieOptions = getCookieOptions();
+    res.cookie('token', token, cookieOptions);
+    console.log("🍪 [Login] Cookie set with options:", JSON.stringify(cookieOptions, null, 2));
+
+    // Check response headers
+    console.log("🔍 [Login] Response Headers being sent:", res.getHeaders());
 
     res.status(200).json({ success: true, message: 'Login successful' });
   } catch (err) {
@@ -105,20 +120,23 @@ async function login(req, res) {
 
 async function logout(req, res) {
   try {
-    console.log("📩 [Logout] API called, Cookies:", req.cookies);
+    console.log("📩 [Logout] API called");
+    console.log("🔍 [Logout] Request Headers:", JSON.stringify(req.headers, null, 2));
+    console.log("🔍 [Logout] All Cookies Received:", JSON.stringify(req.cookies, null, 2));
+    console.log("🔍 [Logout] Raw Cookie Header:", req.headers.cookie);
 
     const { token } = req.cookies;
     if (!token) {
       console.warn("⚠️ [Logout] Token not present in cookies");
+      console.warn("⚠️ [Logout] Available cookies:", Object.keys(req.cookies));
       return res.status(400).json({ success: false, message: "Token not present" });
     }
 
-    // Use consistent cookie options for clearing (without maxAge)
     const clearOptions = getCookieOptions();
-    delete clearOptions.maxAge; // Remove maxAge for clearing
+    delete clearOptions.maxAge;
     
     res.clearCookie("token", clearOptions);
-    console.log("✅ [Logout] Cookie cleared successfully");
+    console.log("✅ [Logout] Cookie cleared with options:", JSON.stringify(clearOptions, null, 2));
     
     return res.json({ success: true, message: "Logout successfully" });
   } catch (err) {
@@ -127,6 +145,28 @@ async function logout(req, res) {
   }
 }
 
+// Add a debug endpoint to check cookies
+async function debugCookies(req, res) {
+  console.log("🔍 [Debug] All request data:");
+  console.log("Headers:", JSON.stringify(req.headers, null, 2));
+  console.log("Cookies:", JSON.stringify(req.cookies, null, 2));
+  console.log("Raw Cookie Header:", req.headers.cookie);
+  console.log("Environment Variables:");
+  console.log("NODE_ENV:", process.env.NODE_ENV);
+  console.log("COOKIE_DOMAIN:", process.env.COOKIE_DOMAIN);
+  console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
+  
+  res.json({
+    headers: req.headers,
+    cookies: req.cookies,
+    rawCookie: req.headers.cookie,
+    environment: {
+      NODE_ENV: process.env.NODE_ENV,
+      COOKIE_DOMAIN: process.env.COOKIE_DOMAIN,
+      FRONTEND_URL: process.env.FRONTEND_URL
+    }
+  });
+}
 async function verifyOtpSend(req,res){
     try{
         const user_id =  req.userId;
@@ -327,5 +367,5 @@ async function resetPassword(req,res){
 }
 
 
-module.exports = {register,login,logout,verifyOtpSend,verifyEmail,resetPasswordOtp,resetPassword,checkOtp};
+module.exports = {register,login,logout,verifyOtpSend,verifyEmail,resetPasswordOtp,resetPassword,checkOtp,debugCookies};
 

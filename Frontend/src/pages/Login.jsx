@@ -34,7 +34,7 @@ const Login = () => {
                 email,
                 password,
             }, { withCredentials: true } ,
-           headers: { "Content-Type": "application/json" },);
+          );
 
                 if (data.success) {
                       // Remember Me ka logic
