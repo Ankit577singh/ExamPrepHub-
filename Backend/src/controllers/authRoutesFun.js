@@ -1,172 +1,115 @@
 const User = require('../model/userScema');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');      // for storing password in hashcode formate 
+const jwt = require('jsonwebtoken');   // for give jwt token to user
 const validation = require('../util/validation');
 const transporter = require('../config/nodemailer');
-const { EMAIL_VERIFY_TEMPLATE, PASSWORD_RESET_TEMPLATE, RAGISTER_EMAIL, VERIFIED_ACCOUNT } = require('../config/email.template');
-
-// Helper function to get cookie options with detailed logging
-const getCookieOptions = () => {
-  const options = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 60 * 60 * 1000, // 1 hour
-  };
-
-  // Only add domain in production if specified
-  if (process.env.NODE_ENV === 'production' && process.env.COOKIE_DOMAIN) {
-    options.domain = process.env.COOKIE_DOMAIN;
-  }
-
-  // Debug logging
-  console.log("🔍 [Cookie Options] Environment:", process.env.NODE_ENV);
-  console.log("🔍 [Cookie Options] Secure:", options.secure);
-  console.log("🔍 [Cookie Options] SameSite:", options.sameSite);
-  console.log("🔍 [Cookie Options] Domain:", options.domain || 'undefined');
-  console.log("🔍 [Cookie Options] Full Options:", JSON.stringify(options, null, 2));
-
-  return options;
-};
+const {EMAIL_VERIFY_TEMPLATE,PASSWORD_RESET_TEMPLATE,RAGISTER_EMAIL,VERIFIED_ACCOUNT} = require('../config/email.template');
 
 async function register(req, res) {
   try {
-    console.log("📩 [Register] API called with data:", req.body);
-    console.log("🔍 [Register] Request Headers:", JSON.stringify(req.headers, null, 2));
-
+        // console.log("📩 Register API hit with data:", req.body);
     validation(req.body);
+    
 
     const { name, email, password } = req.body;
-    console.log("👉 [Register] User input -> Name:", name, "Email:", email);
-
     req.body.password = await bcrypt.hash(password, 10);
-    console.log("🔐 [Register] Password hashed successfully");
 
     const user = await User.create(req.body);
-    console.log("✅ [Register] User created:", user._id);
 
     const token = jwt.sign(
-      { _id: user._id, email },
+      { _id: user._id, email: email },
       process.env.JWT_SECRET_KEY,
       { expiresIn: 60 * 60 }
     );
-    console.log("🎫 [Register] JWT generated:", token);
 
-    const cookieOptions = getCookieOptions();
-    res.cookie("token", token, cookieOptions);
-    console.log("🍪 [Register] Cookie set with options:", JSON.stringify(cookieOptions, null, 2));
+    res.cookie("token", token, {
+     httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+          maxAge:  60 * 60 * 1000, 
+            domain: process.env.NODE_ENV === 'production'?process.env.COOKIE_DOMAIN:'undefined'
+    } );
 
+    // safe mail send
     try {
       const mail = {
         from: process.env.SENDER_EMAIL,
         to: email,
         subject: "Welcome to ExamPrepHub",
-        html: RAGISTER_EMAIL.replace("{{name}}", name).replace("{{email}}", email).replace("{{url}}", process.env.FRONTEND_URL)
+        // text: `Hi ${name}, welcome to ExamPrepHub. Your account has been created with ${email}`,
+        html : RAGISTER_EMAIL.replace("{{name}}",name).replace("{{email}}",email).replace("{{url}}",process.env.FRONTEND_URL)
       };
       await transporter.sendMail(mail);
-      console.log("📧 [Register] Email sent to:", email);
     } catch (mailErr) {
-      console.error("❌ [Register] Email send failed:", mailErr.message);
+      console.error("Email send failed:", mailErr.message);
     }
 
-    return res.json({ success: true, message: "User register successfully" });
+    return res.json({ success: true, message: "User register successfully"});
   } catch (err) {
-    console.error("❌ [Register] Error:", err.message);
-    return res.status(500).json({ success: false, message: err.message || "Server error" });
+    console.error("Register error:", err.message);
+    return res
+      .status(500)
+      .json({ success: false, message: err.message || "Server error" });
   }
 }
 
-async function login(req, res) {
-  try {
-    console.log("📩 [Login] API called with data:", req.body);
-    console.log("🔍 [Login] Request Headers:", JSON.stringify(req.headers, null, 2));
-    console.log("🔍 [Login] Request Origin:", req.headers.origin);
-    console.log("🔍 [Login] Request Host:", req.headers.host);
-    console.log("🔍 [Login] Request Referer:", req.headers.referer);
 
+async function login(req, res)  {
+  try {
     const { email, password } = req.body;
+
     if (!email || !password) throw new Error('Invalid Credentials');
 
     const user = await User.findOne({ email });
-    console.log("👉 [Login] User found:", user ? user._id : "Not found");
-
     if (!user) throw new Error('Invalid Email');
 
     const match = await bcrypt.compare(password, user.password);
-    console.log("🔐 [Login] Password match:", match);
-
     if (!match) throw new Error('Invalid Password');
 
     const token = jwt.sign(
       { _id: user._id, email },
       process.env.JWT_SECRET_KEY,
-      { expiresIn: 60 * 60 }
+      { expiresIn: 60 * 60 } // 1 hour
     );
-    console.log("🎫 [Login] JWT generated:", token);
 
-    const cookieOptions = getCookieOptions();
-    res.cookie('token', token, cookieOptions);
-    console.log("🍪 [Login] Cookie set with options:", JSON.stringify(cookieOptions, null, 2));
-
-    // Check response headers
-    console.log("🔍 [Login] Response Headers being sent:", res.getHeaders());
+    // ✅ Set secure, cross-domain cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+          maxAge:  60 * 60 * 1000, 
+          domain: process.env.NODE_ENV === 'production'?process.env.COOKIE_DOMAIN:'undefined'
+    });
 
     res.status(200).json({ success: true, message: 'Login successful' });
   } catch (err) {
-    console.error("❌ [Login] Error:", err.message);
     res.status(401).json({ success: false, message: err.message });
   }
-}
+};
 
 async function logout(req, res) {
   try {
-    console.log("📩 [Logout] API called");
-    console.log("🔍 [Logout] Request Headers:", JSON.stringify(req.headers, null, 2));
-    console.log("🔍 [Logout] All Cookies Received:", JSON.stringify(req.cookies, null, 2));
-    console.log("🔍 [Logout] Raw Cookie Header:", req.headers.cookie);
-
     const { token } = req.cookies;
+
     if (!token) {
-      console.warn("⚠️ [Logout] Token not present in cookies");
-      console.warn("⚠️ [Logout] Available cookies:", Object.keys(req.cookies));
       return res.status(400).json({ success: false, message: "Token not present" });
     }
 
-    const clearOptions = getCookieOptions();
-    delete clearOptions.maxAge;
-    
-    res.clearCookie("token", clearOptions);
-    console.log("✅ [Logout] Cookie cleared with options:", JSON.stringify(clearOptions, null, 2));
-    
+    // Clear token properly
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // local dev ke liye false
+      sameSite: "strict",
+    });
+
     return res.json({ success: true, message: "Logout successfully" });
   } catch (err) {
-    console.error("❌ [Logout] Error:", err.message);
     return res.status(500).json({ success: false, message: "Error: " + err.message });
   }
 }
 
-// Add a debug endpoint to check cookies
-async function debugCookies(req, res) {
-  console.log("🔍 [Debug] All request data:");
-  console.log("Headers:", JSON.stringify(req.headers, null, 2));
-  console.log("Cookies:", JSON.stringify(req.cookies, null, 2));
-  console.log("Raw Cookie Header:", req.headers.cookie);
-  console.log("Environment Variables:");
-  console.log("NODE_ENV:", process.env.NODE_ENV);
-  console.log("COOKIE_DOMAIN:", process.env.COOKIE_DOMAIN);
-  console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
-  
-  res.json({
-    headers: req.headers,
-    cookies: req.cookies,
-    rawCookie: req.headers.cookie,
-    environment: {
-      NODE_ENV: process.env.NODE_ENV,
-      COOKIE_DOMAIN: process.env.COOKIE_DOMAIN,
-      FRONTEND_URL: process.env.FRONTEND_URL
-    }
-  });
-}
+
+
 async function verifyOtpSend(req,res){
     try{
         const user_id =  req.userId;
@@ -367,5 +310,5 @@ async function resetPassword(req,res){
 }
 
 
-module.exports = {register,login,logout,verifyOtpSend,verifyEmail,resetPasswordOtp,resetPassword,checkOtp,debugCookies};
+module.exports = {register,login,logout,verifyOtpSend,verifyEmail,resetPasswordOtp,resetPassword,checkOtp};
 

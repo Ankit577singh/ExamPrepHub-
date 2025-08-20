@@ -1,5 +1,5 @@
 const express = require('express');
-const {register,login,logout,verifyOtpSend,verifyEmail,resetPasswordOtp,resetPassword,checkOtp, debugCookies} = require('../controllers/authRoutesFun');
+const {register,login,logout,verifyOtpSend,verifyEmail,resetPasswordOtp,resetPassword,checkOtp} = require('../controllers/authRoutesFun');
 const userMiddleware = require('../middleware/userMiddleware');
 const idMiddleware = require('../middleware/idMiddleware');
 const getProfile = require('../controllers/userRoutes');
@@ -18,7 +18,6 @@ authRouter.post('/reset-pass-otp' ,resetPasswordOtp);
 authRouter.post('/check-otp' ,checkOtp);
 authRouter.post('/reset-password',resetPassword);
 authRouter.get('/getProfile',idMiddleware,getProfile); 
-authRouter.get('/debug-cookies', debugCookies)
 
 
 module.exports = authRouter;
