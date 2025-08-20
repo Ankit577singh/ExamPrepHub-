@@ -33,7 +33,7 @@ const Login = () => {
             const { data } = await axios.post(backendUrl + "/user/login", {
                 email,
                 password,
-            });
+            }, { withCredentials: true } );
 
                 if (data.success) {
                       // Remember Me ka logic
@@ -55,7 +55,7 @@ const Login = () => {
                     name,
                     email,
                     password,
-                  });
+                  }, { withCredentials: true } );
 
                   if (data.success) {
                     

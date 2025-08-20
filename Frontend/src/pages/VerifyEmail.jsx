@@ -49,7 +49,7 @@ const VerifyEmail = () => {
 
       const otpArray = inputRefs.current.map(e => e.value);
       const otp = otpArray.join('');
-      const { data } = await axios.post(backendUrl + '/user/verify-email', { otp });
+      const { data } = await axios.post(backendUrl + '/user/verify-email', { otp }, { withCredentials: true } );
 
       if(data.success){
         toast.success(data.message);

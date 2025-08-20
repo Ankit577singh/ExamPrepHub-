@@ -53,7 +53,7 @@ const ResetPassword = () => {
     try {
       const { data } = await axios.post(backendUrl + "/user/reset-pass-otp", {
         email,
-      });
+      }, { withCredentials: true } );
       data.success ? toast.success(data.message) : toast.error(data.message);
       data.success && setIsEmailSent(true);
     } catch (error) {
@@ -69,7 +69,7 @@ const ResetPassword = () => {
       const { data } = await axios.post(backendUrl + "/user/check-otp", {
         email,
         otp,
-      });
+      }, { withCredentials: true } );
       data.success ? toast.success(data.message) : toast.error(data.message);
       if (data.success) {
         setOtp(otp);
@@ -87,7 +87,7 @@ const ResetPassword = () => {
         email,
         otp,
         newPassword,
-      });
+      }, { withCredentials: true } );
       data.success ? toast.success(data.message) : toast.error(data.message);
       data.success && navigate("/login");
     } catch (error) {
