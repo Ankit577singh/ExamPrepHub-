@@ -33,7 +33,8 @@ const Login = () => {
             const { data } = await axios.post(backendUrl + "/user/login", {
                 email,
                 password,
-            }, { withCredentials: true } );
+            }, { withCredentials: true } ,
+           headers: { "Content-Type": "application/json" },);
 
                 if (data.success) {
                       // Remember Me ka logic
