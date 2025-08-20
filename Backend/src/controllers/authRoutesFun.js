@@ -54,44 +54,38 @@ async function register(req, res) {
 }
 
 
-async function login(req,res){
-    try{
-        const {email , password} = req.body;
+app.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-        if(!email)
-            throw new Error("Invalid Credentials ");
-        
-        if(!password)
-            throw new Error("Invalid Credentials ");
-        
-        const user = await User.findOne({email});
-        if (!user) throw new Error("Invalid Email id ");
+    if (!email || !password) throw new Error('Invalid Credentials');
 
-        const match = await bcrypt.compare(password,user.password);
+    const user = await User.findOne({ email });
+    if (!user) throw new Error('Invalid Email');
 
-        if(!match)
-             throw new Error("Invalid Password ");
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) throw new Error('Invalid Password');
 
-        const token = jwt.sign({_id:user._id , email:email},process.env.JWT_SECRET_KEY,{expiresIn:60*60});
-        // res.cookie('token',token,{maxAge:60*60*1000});
-        res.cookie('token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-          maxAge:  60 * 60 * 1000, 
-          domain: undefined 
-        });
+    const token = jwt.sign(
+      { _id: user._id, email },
+      process.env.JWT_SECRET_KEY,
+      { expiresIn: 60 * 60 } // 1 hour
+    );
 
-        // res.status(200).send("Login Succesfull");
-        res.json({success : true , message : "Login successfully",token});
-        
+    // ✅ Set secure, cross-domain cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,                  // HTTPS only
+      sameSite: 'none',              // cross-site
+      maxAge: 60 * 60 * 1000,        // 1 hour
+      domain: '.your-frontend.com'   // adjust for subdomains, remove if not needed
+    });
 
-    }
-    catch(err){
-        // res.status(401).send("Error : " + err);
-        res.json({success : false , message : "Error"+err});
-    }
-}
+    res.status(200).json({ success: true, message: 'Login successful' });
+  } catch (err) {
+    res.status(401).json({ success: false, message: err.message });
+  }
+});
 
 async function logout(req, res) {
   try {
