@@ -37,18 +37,12 @@ const Login = () => {
           );
 
                 if (data.success) {
-                      // Remember Me ka logic
-                    if (rememberMe) {
-                        localStorage.setItem("authToken", data.token); // long-term
-                    } else {
-                        sessionStorage.setItem("authToken", data.token); // tab band hote hi clear
-                    }
-                    toast.success(data.message || "User registered successfully ✅");
+                    toast.success(data.message || "User login successfully ✅");
                     setIsLoggin(true);
                     getUserdata();
                     navigate("/login-home");
                 } else {
-                    toast.error(data.message || "Registration failed");
+                    toast.error(data.message || "login  failed");
                 }
 
             } else {

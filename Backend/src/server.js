@@ -20,6 +20,7 @@ app.get('/',(req,res)=>{
 })
 
 app.use('/user',authRouter);
+
 app.get('/debug-env', (req, res) => {
   res.json({
     NODE_ENV: process.env.NODE_ENV,
