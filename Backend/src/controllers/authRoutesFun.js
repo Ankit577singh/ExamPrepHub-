@@ -44,7 +44,7 @@ async function register(req, res) {
       console.error("Email send failed:", mailErr.message);
     }
 
-    return res.json({ success: true, message: "User register successfully" ,token});
+    return res.json({ success: true, message: "User register successfully"});
   } catch (err) {
     console.error("Register error:", err.message);
     return res

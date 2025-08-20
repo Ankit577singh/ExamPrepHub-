@@ -8,14 +8,18 @@ import { AppContent } from "../contextapi/AppContext";
 
 
 const DashboardHome = () => {
-    const { getData ,isLoggin} = useContext(AppContent);
+    const { getData ,isLoggin,getUserdata} = useContext(AppContent);
     console.log(getData);
     const navigate = useNavigate();
 
     useEffect(()=>{
       !isLoggin && navigate('/')
     },[isLoggin])
-    
+
+    useEffect(() => {
+      getUserdata();
+    }, []);
+      
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 via-white to-gray-100">
       {/* Navbar */}

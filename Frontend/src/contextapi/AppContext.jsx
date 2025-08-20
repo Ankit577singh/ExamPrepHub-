@@ -13,7 +13,7 @@ export const AppContextProvider = (props) => {
   async function getUserdata() {
     try {
       const { data } = await axios.get(backendUrl + '/user/getProfile', { withCredentials: true });
-      if (data.success) {
+      if (data.success) {      
         setgetData(data.userInfo);  // {username, email, ...}
         setIsLoggin(true);
       } else {
