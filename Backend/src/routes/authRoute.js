@@ -1,5 +1,5 @@
 const express = require('express');
-const {register,login,logout,verifyOtpSend,verifyEmail,resetPasswordOtp,resetPassword,checkOtp} = require('../controllers/authRoutesFun');
+const {register,login,logout,verifyOtpSend,verifyEmail,resetPasswordOtp,resetPassword,checkOtp, debugCookies} = require('../controllers/authRoutesFun');
 const userMiddleware = require('../middleware/userMiddleware');
 const idMiddleware = require('../middleware/idMiddleware');
 const getProfile = require('../controllers/userRoutes');
